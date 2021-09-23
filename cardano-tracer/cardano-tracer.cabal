@@ -104,6 +104,10 @@ test-suite cardano-tracer-test
 
   other-modules:       Cardano.Tracer.Test.Forwarder
                        Cardano.Tracer.Test.Logs.Tests
+                       Cardano.Tracer.Test.Network.Tests
+                       Cardano.Tracer.Test.Queue.Tests
+
+                       Cardano.Tracer.Test.Utils
 
   build-depends:         async
                        , base
@@ -114,12 +118,14 @@ test-suite cardano-tracer-test
                        , directory
                        , ekg-core
                        , ekg-forward
+                       , extra
                        , filepath
                        , ouroboros-network-framework
                        , QuickCheck
                        , stm
                        , tasty
                        , tasty-quickcheck
+                       , text
                        , time
                        , trace-dispatcher
                        , trace-forward

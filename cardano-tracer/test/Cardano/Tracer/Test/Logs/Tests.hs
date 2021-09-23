@@ -7,7 +7,6 @@ module Cardano.Tracer.Test.Logs.Tests
   ( tests
   ) where
 
-import           Control.Concurrent (threadDelay)
 import           Control.Concurrent.Async (withAsync)
 import           Control.Concurrent.STM (atomically)
 import           Control.Concurrent.STM.TVar (modifyTVar', newTVarIO)
@@ -16,41 +15,32 @@ import           Test.Tasty
 import           Test.Tasty.QuickCheck
 import           System.Directory
 import           System.FilePath
+import           System.Time.Extra
 
 import           Cardano.Tracer.Configuration
 import           Cardano.Tracer.Handlers.Logs.Log (isItLog, isItSymLink)
 import           Cardano.Tracer.Run (runCardanoTracerWithConfigBrakes)
 
 import           Cardano.Tracer.Test.Forwarder (launchForwardersSimple)
+import           Cardano.Tracer.Test.Utils
 
 tests :: TestTree
-tests = localOption (QuickCheckTests 1) $ testGroup "Test.Logs.File"
-  [ testProperty ".log"  $ propFile ForHuman   "text" "cardano-tracer-log.sock"
-  , testProperty ".json" $ propFile ForMachine "json" "cardano-tracer-json.sock"
+tests = localOption (QuickCheckTests 1) $ testGroup "Test.Logs"
+  [ testProperty ".log"  $ propRunInLogsStructure (propLogs ForHuman)
+  , testProperty ".json" $ propRunInLogsStructure (propLogs ForMachine)
   ]
 
-propFile
-  :: LogFormat
-  -> FilePath
-  -> String
-  -> Property
-propFile format suffix localSockName = ioProperty $ do
-  tmpDir <- getTemporaryDirectory
-  let rootDir = tmpDir </> ("test-logs-" <> suffix)
-      localSock = tmpDir </> localSockName
-  -- Remove old paths if needed.
-  removePathForcibly rootDir
-  removePathForcibly localSock
-
+propLogs :: LogFormat -> FilePath -> FilePath -> IO Property
+propLogs format rootDir localSock = do
   stopEKG <- newTVarIO False
   stopTF  <- newTVarIO False
   withAsync (runCardanoTracerWithConfigBrakes (config rootDir localSock) [(stopEKG, stopTF)]) $ \_ ->
-    withAsync (launchForwardersSimple localSock) $ \_ -> do
-      threadDelay 15000000 -- Wait till some rotation is done.
+    withAsync (launchForwardersSimple localSock 1000 10000) $ \_ -> do
+      sleep 15.0 -- Wait till some rotation is done.
       atomically $ do
         modifyTVar' stopEKG . const $ True
         modifyTVar' stopTF  . const $ True
-      threadDelay 1000000
+      sleep 1.0
 
   doesDirectoryExist rootDir >>= \case
     True ->
@@ -78,7 +68,7 @@ propFile format suffix localSockName = ioProperty $ do
                               -- The logs' names contain timestamps, so the
                               -- latest log is the maximum one.
                               let latestLog = maximum logsWeNeed
-                              return $ latestLog === maybeLatestLog
+                              return $ latestLog === takeFileName maybeLatestLog
                             _ -> false "there is more than one symlink"
                         else false "there is still 1 single log, no rotation"
         _ -> false "root dir contains more than one subdir"
@@ -98,6 +88,3 @@ propFile format suffix localSockName = ioProperty $ do
                          , rpKeepFilesNum  = 10
                          }
     }
-
-  false :: String -> IO Property
-  false msg = return . counterexample msg $ property False

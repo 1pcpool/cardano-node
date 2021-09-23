@@ -4,6 +4,7 @@
 module Cardano.Tracer.Run
   ( runCardanoTracer
   -- | For testing purposes.
+  , runCardanoTracerWithConfig
   , runCardanoTracerWithConfigBrakes
   ) where
 
@@ -21,6 +22,17 @@ import           Cardano.Tracer.Types
 runCardanoTracer :: TracerParams -> IO ()
 runCardanoTracer TracerParams{tracerConfig} = do
   config <- readTracerConfig tracerConfig
+  acceptedMetrics  <- initAcceptedMetrics
+  acceptedNodeInfo <- initAcceptedNodeInfo
+  run3ActionsInParallel
+    (runLogsRotator config)
+    (runMetricsHandler config acceptedMetrics acceptedNodeInfo)
+    (runAcceptors config acceptedMetrics acceptedNodeInfo)
+
+runCardanoTracerWithConfig
+  :: TracerConfig
+  -> IO ()
+runCardanoTracerWithConfig config = do
   acceptedMetrics  <- initAcceptedMetrics
   acceptedNodeInfo <- initAcceptedNodeInfo
   run3ActionsInParallel
