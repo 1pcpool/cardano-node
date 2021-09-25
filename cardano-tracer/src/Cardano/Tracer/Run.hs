@@ -20,14 +20,8 @@ import           Cardano.Tracer.Handlers.Metrics.Run (runMetricsHandler)
 import           Cardano.Tracer.Types
 
 runCardanoTracer :: TracerParams -> IO ()
-runCardanoTracer TracerParams{tracerConfig} = do
-  config <- readTracerConfig tracerConfig
-  acceptedMetrics  <- initAcceptedMetrics
-  acceptedNodeInfo <- initAcceptedNodeInfo
-  run3ActionsInParallel
-    (runLogsRotator config)
-    (runMetricsHandler config acceptedMetrics acceptedNodeInfo)
-    (runAcceptors config acceptedMetrics acceptedNodeInfo)
+runCardanoTracer TracerParams{tracerConfig} =
+  readTracerConfig tracerConfig >>= runCardanoTracerWithConfig
 
 runCardanoTracerWithConfig
   :: TracerConfig

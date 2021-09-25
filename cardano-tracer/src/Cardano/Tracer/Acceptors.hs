@@ -14,6 +14,7 @@ import           Control.Concurrent.Async (forConcurrently_, race_, wait)
 import           Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVarIO)
 import "contra-tracer" Control.Tracer (nullTracer)
 import qualified Data.ByteString.Lazy as LBS
+import           Data.List (nub)
 import           Data.Maybe (fromMaybe)
 import           Data.HashMap.Strict ((!))
 import           Data.Time.Clock (secondsToNominalDiffTime)
@@ -64,7 +65,7 @@ runAcceptors
   -> AcceptedNodeInfo
   -> IO ()
 runAcceptors config@TracerConfig{acceptAt} acceptedMetrics acceptedNodeInfo =
-  forConcurrently_ acceptAt $ \(LocalSocket p) -> do
+  forConcurrently_ (nub acceptAt) $ \(LocalSocket p) -> do
     stopEKG <- newTVarIO False
     stopTF  <- newTVarIO False
     runAcceptorsForOneNode config acceptedMetrics acceptedNodeInfo p stopEKG stopTF
@@ -142,7 +143,7 @@ runAcceptor config@TracerConfig{connectMode} p (ekgConfig, tfConfig) acceptedMet
             , (runTraceObjectsAcceptorInit config tfConfig acceptedNodeInfo, 2)
             ]
       Responder ->
-        doListenToAcceptor snock addr noTimeLimitsHandshake $
+        doListenToForwarder snock addr noTimeLimitsHandshake $
           appResponder
             [ (runEKGAcceptor ekgConfig acceptedMetrics, 1)
             , (runTraceObjectsAcceptor config tfConfig acceptedNodeInfo, 2)
@@ -189,14 +190,14 @@ doConnectToForwarder snocket address timeLimits app =
     Nothing
     address
 
-doListenToAcceptor
+doListenToForwarder
   :: Ord addr
   => Snocket IO fd addr
   -> addr
   -> ProtocolTimeLimits (Handshake UnversionedProtocol Term)
   -> OuroborosApplication 'ResponderMode addr LBS.ByteString IO Void ()
   -> IO ()
-doListenToAcceptor snocket address timeLimits app = do
+doListenToForwarder snocket address timeLimits app = do
   networkState <- newNetworkMutableState
   race_ (cleanNetworkMutableState networkState)
         $ withServerNode

@@ -37,11 +37,13 @@ nodeInfoHandler
   -> IO ()
 nodeInfoHandler TracerConfig{logging} nodeId acceptedNodeInfo ni = do
   atomically . modifyTVar' acceptedNodeInfo $ insert nodeId ni
-  -- We can already write this node's info in the log and/or journal.
+  -- We can already write this node's info in the beginning of log and/or journal.
   forConcurrently_ (nub logging) $ \LoggingParams{logMode, logRoot, logFormat} ->
     case logMode of
-      FileMode    -> showProblemIfAny $ writeNodeInfoToFile nodeId logRoot logFormat ni
-      JournalMode -> showProblemIfAny $ writeNodeInfoToJournal nodeId ni
+      FileMode ->
+        showProblemIfAny $ writeNodeInfoToFile nodeId logRoot logFormat ni
+      JournalMode ->
+        showProblemIfAny $ writeNodeInfoToJournal nodeId ni
 
 traceObjectsHandler
   :: TracerConfig

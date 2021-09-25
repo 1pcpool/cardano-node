@@ -9,7 +9,6 @@ import           Control.Monad.Extra (ifM)
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
 import           System.Directory
-import           System.FilePath
 import           System.Time.Extra (sleep)
 
 import           Cardano.Tracer.Configuration
