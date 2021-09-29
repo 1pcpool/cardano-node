@@ -611,9 +611,8 @@ module Cardano.Api (
     queryExpr,
     determineEraExpr,
 
-    Point(..),
-    pointToSlotNo,
-    pointToHeaderHash
+    chainPointToSlotNo,
+    chainPointToHeaderHash
 
   ) where
 

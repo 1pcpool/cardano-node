@@ -38,6 +38,9 @@ module Cardano.Api.Block (
 
     -- * Data family instances
     Hash(..),
+
+    chainPointToHeaderHash,
+    chainPointToSlotNo,
   ) where
 
 import           Prelude
@@ -342,6 +345,14 @@ fromConsensusPoint (Consensus.BlockPoint slot h) =
   where
     proxy :: Proxy (Consensus.ShelleyBlock ledgerera)
     proxy = Proxy
+
+chainPointToSlotNo :: ChainPoint -> Maybe SlotNo
+chainPointToSlotNo ChainPointAtGenesis = Nothing
+chainPointToSlotNo (ChainPoint slotNo _) = Just slotNo
+
+chainPointToHeaderHash :: ChainPoint -> Maybe (Hash BlockHeader)
+chainPointToHeaderHash ChainPointAtGenesis = Nothing
+chainPointToHeaderHash (ChainPoint _ blockHeader) = Just blockHeader
 
 
 -- ----------------------------------------------------------------------------
